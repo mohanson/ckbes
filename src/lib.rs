@@ -5,6 +5,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 
 pub mod atomic;
+pub mod syscall;
 
 pub static mut HEAP: [u8; 1024 * 1024] = [0; 1024 * 1024];
 #[global_allocator]
@@ -15,33 +16,7 @@ pub static mut ARGS: Vec<String> = Vec::new();
 pub fn panic_handler(_: &core::panic::PanicInfo) -> ! {
     // If the main thread panics it will terminate all your threads and end your program with code 101.
     // See: https://github.com/rust-lang/rust/blob/master/library/core/src/macros/panic.md
-    syscall_exit(101)
-}
-
-pub fn syscall(mut a0: u64, a1: u64, a2: u64, a3: u64, a4: u64, a5: u64, a6: u64, a7: u64) -> u64 {
-    unsafe {
-        core::arch::asm!(
-          "ecall",
-          inout("a0") a0,
-          in("a1") a1,
-          in("a2") a2,
-          in("a3") a3,
-          in("a4") a4,
-          in("a5") a5,
-          in("a6") a6,
-          in("a7") a7
-        )
-    }
-    a0
-}
-
-pub fn syscall_debug(buf: *const u8) -> u64 {
-    syscall(buf as u64, 0, 0, 0, 0, 0, 0, 2177)
-}
-
-pub fn syscall_exit(code: u64) -> ! {
-    syscall(code, 0, 0, 0, 0, 0, 0, 93);
-    loop {}
+    syscall::exit(101)
 }
 
 #[no_mangle]
