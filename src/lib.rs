@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 
 pub mod atomic;
 pub mod blake2b;
+pub mod conversion;
 pub mod molecule;
 pub mod syscall;
 
@@ -18,7 +19,7 @@ pub static mut ARGS: Vec<String> = Vec::new();
 pub fn panic_handler(_: &core::panic::PanicInfo) -> ! {
     // If the main thread panics it will terminate all your threads and end your program with code 101.
     // See: https://github.com/rust-lang/rust/blob/master/library/core/src/macros/panic.md
-    syscall::exit(101)
+    crate::syscall::exit(101)
 }
 
 #[no_mangle]
