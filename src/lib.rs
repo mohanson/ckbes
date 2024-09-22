@@ -6,6 +6,7 @@ use alloc::vec::Vec;
 
 pub mod atomic;
 pub mod blake2b;
+pub mod molecule;
 pub mod syscall;
 
 pub static mut HEAP: [u8; 1024 * 1024] = [0; 1024 * 1024];
