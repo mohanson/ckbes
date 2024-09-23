@@ -27,3 +27,10 @@ pub fn exit(code: u64) -> ! {
     ecall(code, 0, 0, 0, 0, 0, 0, 93);
     loop {}
 }
+
+pub fn load_tx_hash() -> [u8; 32] {
+    let mut buf = [0; 32];
+    let mut len: u64 = 32;
+    ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, 0, 0, 0, 0, 2061);
+    buf
+}
