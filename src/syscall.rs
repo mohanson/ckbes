@@ -32,10 +32,8 @@ pub fn exit(code: u64) -> ! {
     loop {}
 }
 
-pub fn exec(index: u64) -> ! {
-    let ret = ecall(index, crate::conversion::SOURCE_CELL_DEP, 0, 0, 0, 0, 0, 2043);
-    assert!(ret == 0);
-    loop {}
+pub fn exec() -> ! {
+    panic!("deprecated");
 }
 
 pub fn load_cell(index: u64, source: u64) -> crate::conversion::CellOutput {
