@@ -36,6 +36,22 @@ pub fn load_cell(index: u64, source: u64) -> crate::conversion::CellOutput {
     crate::conversion::CellOutput::molecule_decode(&buf[..len as usize])
 }
 
+pub fn load_cell_data(index: u64, source: u64) -> Vec<u8> {
+    let mut buf = [0; 32 * 1024];
+    let mut len: u64 = 32 * 1024;
+    ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, index, source, 0, 0, 2092);
+    assert!(len <= 32 * 1024);
+    buf[..len as usize].to_vec()
+}
+
+pub fn load_input(index: u64, source: u64) -> crate::conversion::CellInput {
+    let mut buf = [0; 32 * 1024];
+    let mut len: u64 = 32 * 1024;
+    ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, index, source, 0, 0, 2073);
+    assert!(len <= 32 * 1024);
+    crate::conversion::CellInput::molecule_decode(&buf[..len as usize])
+}
+
 pub fn load_script_hash() -> [u8; 32] {
     let mut buf = [0; 32];
     let mut len: u64 = 32;
