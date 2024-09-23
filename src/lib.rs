@@ -1,7 +1,7 @@
 #![no_std]
 
 extern crate alloc;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
 pub mod atomic;
@@ -16,9 +16,10 @@ pub static mut LALC: linked_list_allocator::LockedHeap = linked_list_allocator::
 pub static mut ARGS: Vec<String> = Vec::new();
 
 #[panic_handler]
-pub fn panic_handler(_: &core::panic::PanicInfo) -> ! {
+pub fn panic_handler(i: &core::panic::PanicInfo) -> ! {
     // If the main thread panics it will terminate all your threads and end your program with code 101.
     // See: https://github.com/rust-lang/rust/blob/master/library/core/src/macros/panic.md
+    crate::syscall::debug(&i.to_string());
     crate::syscall::exit(101)
 }
 

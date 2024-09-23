@@ -163,9 +163,12 @@ pub fn read(fd: u64, buf: &mut [u8]) -> u64 {
 pub fn spawn(index: u64, source: u64, args: &[&str], fds: &[u64]) -> u64 {
     let args_vec: Vec<u64> = args.iter().map(|e| CString::new(*e).unwrap().as_c_str().as_ptr() as u64).collect();
     let args_ptr = args_vec.as_ptr() as u64;
-    let fds_ptr = fds.as_ptr() as u64;
+    let mut fdr = Vec::new();
+    fdr.extend_from_slice(fds);
+    fdr.push(0);
+    let fdr_ptr = fdr.as_ptr() as u64;
     let mut pid: u64 = 0;
-    let spgs = [args.len() as u64, args_ptr, core::ptr::addr_of_mut!(pid) as u64, fds_ptr];
+    let spgs = [args.len() as u64, args_ptr, core::ptr::addr_of_mut!(pid) as u64, fdr_ptr];
     let spgs_ptr = spgs.as_ptr() as u64;
     let ret = ecall(index, source, 0, 0, spgs_ptr, 0, 0, 2601);
     assert!(ret == 0);
