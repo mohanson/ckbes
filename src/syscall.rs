@@ -34,3 +34,11 @@ pub fn load_tx_hash() -> [u8; 32] {
     ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, 0, 0, 0, 0, 2061);
     buf
 }
+
+pub fn load_tx() -> crate::conversion::Transaction {
+    let mut buf = [0; 32 * 1024];
+    let mut len: u64 = 32 * 1024;
+    ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, 0, 0, 0, 0, 2051);
+    assert!(len <= 32 * 1024);
+    crate::conversion::Transaction::molecule_decode(&buf[..len as usize])
+}
