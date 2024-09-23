@@ -36,6 +36,15 @@ pub fn exec() -> ! {
     panic!("deprecated");
 }
 
+pub fn load_block_extension(index: u64, source: u64) -> Vec<u8> {
+    let mut buf = [0; 32 * 1024];
+    let mut len: u64 = 32 * 1024;
+    let ret = ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, index, source, 0, 0, 2104);
+    assert!(ret == 0);
+    assert!(len <= 32 * 1024);
+    buf[..len as usize].to_vec()
+}
+
 pub fn load_cell(index: u64, source: u64) -> crate::conversion::CellOutput {
     let mut buf = [0; 32 * 1024];
     let mut len: u64 = 32 * 1024;
