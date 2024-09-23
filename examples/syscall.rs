@@ -7,6 +7,9 @@ use alloc::format;
 
 #[no_mangle]
 pub unsafe extern "C" fn main() -> u64 {
+    let current_cycles = ckbes::syscall::current_cycles();
+    ckbes::syscall::debug(&format!("{:?}", current_cycles));
+
     let cell = ckbes::syscall::load_cell(0, ckbes::conversion::SOURCE_INPUT);
     ckbes::syscall::debug(&format!("{:?}", cell));
 
@@ -27,6 +30,9 @@ pub unsafe extern "C" fn main() -> u64 {
 
     let tx = ckbes::syscall::load_tx();
     ckbes::syscall::debug(&format!("{:?}", tx));
+
+    let vm_version = ckbes::syscall::vm_version();
+    ckbes::syscall::debug(&format!("{:?}", vm_version));
 
     return 0;
 }
