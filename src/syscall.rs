@@ -32,10 +32,6 @@ pub fn exit(code: u64) -> ! {
     loop {}
 }
 
-pub fn exec() -> ! {
-    panic!("deprecated");
-}
-
 pub fn load_block_extension(index: u64, source: u64) -> Vec<u8> {
     let mut buf = [0; 32 * 1024];
     let mut len: u64 = 32 * 1024;
