@@ -7,6 +7,9 @@ use alloc::format;
 
 #[no_mangle]
 pub unsafe extern "C" fn main() -> u64 {
+    let cell = ckbes::syscall::load_cell(0, ckbes::conversion::SOURCE_INPUT);
+    ckbes::syscall::debug(&format!("{:?}", cell));
+
     let script_hash = ckbes::syscall::load_script_hash();
     ckbes::syscall::debug(&hex::encode(script_hash));
 

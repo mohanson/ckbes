@@ -28,6 +28,14 @@ pub fn exit(code: u64) -> ! {
     loop {}
 }
 
+pub fn load_cell(index: u64, source: u64) -> crate::conversion::CellOutput {
+    let mut buf = [0; 32 * 1024];
+    let mut len: u64 = 32 * 1024;
+    ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, index, source, 0, 0, 2071);
+    assert!(len <= 32 * 1024);
+    crate::conversion::CellOutput::molecule_decode(&buf[..len as usize])
+}
+
 pub fn load_script_hash() -> [u8; 32] {
     let mut buf = [0; 32];
     let mut len: u64 = 32;
