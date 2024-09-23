@@ -1,5 +1,9 @@
 use alloc::vec::Vec;
 
+pub fn current_cycles() -> u64 {
+    return ecall(0, 0, 0, 0, 0, 0, 0, 2042);
+}
+
 pub fn debug(msg: &str) -> u64 {
     let mut data: Vec<u8> = msg.as_bytes().into();
     data.push(b'\0');
@@ -96,6 +100,10 @@ pub fn load_tx() -> crate::conversion::Transaction {
     assert!(ret == 0);
     assert!(len <= 32 * 1024);
     crate::conversion::Transaction::molecule_decode(&buf[..len as usize])
+}
+
+pub fn vm_version() -> u64 {
+    return ecall(0, 0, 0, 0, 0, 0, 0, 2041);
 }
 
 pub fn load_witness(index: u64, source: u64) -> Vec<u8> {
