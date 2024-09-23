@@ -173,7 +173,7 @@ pub fn spawn(index: u64, source: u64, args: &[&str], fds: &[u64]) -> u64 {
     let spgs_ptr = spgs.as_ptr() as u64;
     let ret = ecall(index, source, 0, 0, spgs_ptr, 0, 0, 2601);
     assert!(ret == 0);
-    0
+    pid
 }
 
 pub fn vm_version() -> u64 {
