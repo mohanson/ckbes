@@ -27,3 +27,82 @@ pub fn exit(code: u64) -> ! {
     ecall(code, 0, 0, 0, 0, 0, 0, 93);
     loop {}
 }
+
+pub fn load_cell(index: u64, source: u64) -> crate::conversion::CellOutput {
+    let mut buf = [0; 32 * 1024];
+    let mut len: u64 = 32 * 1024;
+    let ret = ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, index, source, 0, 0, 2071);
+    assert!(ret == 0);
+    assert!(len <= 32 * 1024);
+    crate::conversion::CellOutput::molecule_decode(&buf[..len as usize])
+}
+
+pub fn load_cell_data(index: u64, source: u64) -> Vec<u8> {
+    let mut buf = [0; 32 * 1024];
+    let mut len: u64 = 32 * 1024;
+    let ret = ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, index, source, 0, 0, 2092);
+    assert!(ret == 0);
+    assert!(len <= 32 * 1024);
+    buf[..len as usize].to_vec()
+}
+
+pub fn load_header(index: u64, source: u64) -> crate::conversion::Header {
+    let mut buf = [0; 32 * 1024];
+    let mut len: u64 = 32 * 1024;
+    let ret = ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, index, source, 0, 0, 2072);
+    assert!(ret == 0);
+    assert!(len <= 32 * 1024);
+    crate::conversion::Header::molecule_decode(&buf[..len as usize])
+}
+
+pub fn load_input(index: u64, source: u64) -> crate::conversion::CellInput {
+    let mut buf = [0; 32 * 1024];
+    let mut len: u64 = 32 * 1024;
+    let ret = ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, index, source, 0, 0, 2073);
+    assert!(ret == 0);
+    assert!(len <= 32 * 1024);
+    crate::conversion::CellInput::molecule_decode(&buf[..len as usize])
+}
+
+pub fn load_script_hash() -> [u8; 32] {
+    let mut buf = [0; 32];
+    let mut len: u64 = 32;
+    let ret = ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, 0, 0, 0, 0, 2062);
+    assert!(ret == 0);
+    buf
+}
+
+pub fn load_script() -> crate::conversion::Script {
+    let mut buf = [0; 32 * 1024];
+    let mut len: u64 = 32 * 1024;
+    let ret = ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, 0, 0, 0, 0, 2052);
+    assert!(ret == 0);
+    assert!(len <= 32 * 1024);
+    crate::conversion::Script::molecule_decode(&buf[..len as usize])
+}
+
+pub fn load_tx_hash() -> [u8; 32] {
+    let mut buf = [0; 32];
+    let mut len: u64 = 32;
+    let ret = ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, 0, 0, 0, 0, 2061);
+    assert!(ret == 0);
+    buf
+}
+
+pub fn load_tx() -> crate::conversion::Transaction {
+    let mut buf = [0; 32 * 1024];
+    let mut len: u64 = 32 * 1024;
+    let ret = ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, 0, 0, 0, 0, 2051);
+    assert!(ret == 0);
+    assert!(len <= 32 * 1024);
+    crate::conversion::Transaction::molecule_decode(&buf[..len as usize])
+}
+
+pub fn load_witness(index: u64, source: u64) -> Vec<u8> {
+    let mut buf = [0; 32 * 1024];
+    let mut len: u64 = 32 * 1024;
+    let ret = ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, index, source, 0, 0, 2074);
+    assert!(ret == 0);
+    assert!(len <= 32 * 1024);
+    buf[..len as usize].to_vec()
+}

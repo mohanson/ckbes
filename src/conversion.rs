@@ -6,6 +6,13 @@ pub const SCRIPT_HASH_TYPE_TYPE: u8 = 1;
 pub const SCRIPT_HASH_TYPE_DATA1: u8 = 2;
 pub const SCRIPT_HASH_TYPE_DATA2: u8 = 4;
 
+pub const SOURCE_INPUT: u64 = 1;
+pub const SOURCE_OUTPUT: u64 = 2;
+pub const SOURCE_CELL_DEP: u64 = 3;
+pub const SOURCE_HEADER_DEP: u64 = 4;
+pub const SOURCE_GROUP_INPUT: u64 = 0x0100000000000001;
+pub const SOURCE_GROUP_OUTPUT: u64 = 0x0100000000000002;
+
 #[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
 pub struct Script {
     pub code_hash: [u8; 32],

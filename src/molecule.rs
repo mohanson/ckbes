@@ -4,6 +4,9 @@ use alloc::vec::Vec;
 pub fn decode_dynvec(data: &[u8]) -> Vec<Vec<u8>> {
     assert!(data.len() >= 4);
     assert!(data.len() as u32 == u32::from_le_bytes(data[0..4].try_into().unwrap()));
+    if data.len() == 4 {
+        return Vec::new();
+    }
     let nums = (u32::from_le_bytes(data[4..8].try_into().unwrap()) / 4 - 1) as usize;
     let mut head: Vec<usize> = vec![];
     for i in 0..nums {
