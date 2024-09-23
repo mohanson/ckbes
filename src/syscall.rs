@@ -1,3 +1,4 @@
+use alloc::ffi::CString;
 use alloc::vec::Vec;
 
 pub fn current_cycles() -> u64 {
@@ -25,6 +26,14 @@ pub fn ecall(mut a0: u64, a1: u64, a2: u64, a3: u64, a4: u64, a5: u64, a6: u64, 
         )
     }
     a0
+}
+
+pub fn exec(index: u64, source: u64, args: &[&str]) -> ! {
+    let args_vec: Vec<u64> = args.iter().map(|e| CString::new(*e).unwrap().as_c_str().as_ptr() as u64).collect();
+    let args_ptr = args_vec.as_ptr() as u64;
+    let ret = ecall(index, source, 0, 0, args.len() as u64, args_ptr, 0, 2043);
+    assert!(ret == 0);
+    loop {}
 }
 
 pub fn exit(code: u64) -> ! {
