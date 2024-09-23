@@ -1,6 +1,11 @@
 use alloc::ffi::CString;
 use alloc::vec::Vec;
 
+pub fn close(fd: u64) {
+    let ret = ecall(fd, 0, 0, 0, 0, 0, 0, 2608);
+    assert!(ret == 0);
+}
+
 pub fn current_cycles() -> u64 {
     return ecall(0, 0, 0, 0, 0, 0, 0, 2042);
 }
@@ -39,6 +44,14 @@ pub fn exec(index: u64, source: u64, args: &[&str]) -> ! {
 pub fn exit(code: u64) -> ! {
     ecall(code, 0, 0, 0, 0, 0, 0, 93);
     loop {}
+}
+
+pub fn inherited_fds() -> Vec<u64> {
+    let mut buf = [0; 32];
+    let mut len: u64 = 32;
+    let ret = ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, 0, 0, 0, 0, 2607);
+    assert!(ret == 0);
+    buf[..len as usize].to_vec()
 }
 
 pub fn load_block_extension(index: u64, source: u64) -> Vec<u8> {
@@ -120,10 +133,6 @@ pub fn load_tx() -> crate::conversion::Transaction {
     crate::conversion::Transaction::molecule_decode(&buf[..len as usize])
 }
 
-pub fn vm_version() -> u64 {
-    return ecall(0, 0, 0, 0, 0, 0, 0, 2041);
-}
-
 pub fn load_witness(index: u64, source: u64) -> Vec<u8> {
     let mut buf = [0; 32 * 1024];
     let mut len: u64 = 32 * 1024;
@@ -131,4 +140,52 @@ pub fn load_witness(index: u64, source: u64) -> Vec<u8> {
     assert!(ret == 0);
     assert!(len <= 32 * 1024);
     buf[..len as usize].to_vec()
+}
+
+pub fn pipe() -> [u64; 2] {
+    let mut fds: [u64; 2] = [0, 0];
+    let ret = ecall(fds.as_mut_ptr() as u64, 0, 0, 0, 0, 0, 0, 2604);
+    assert!(ret == 0);
+    fds
+}
+
+pub fn process_id() -> u64 {
+    ecall(0, 0, 0, 0, 0, 0, 0, 2603)
+}
+
+pub fn read(fd: u64, buf: &mut [u8]) -> u64 {
+    let mut len: u64 = buf.len() as u64;
+    let ret = ecall(fd, buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, 0, 0, 0, 2606);
+    assert!(ret == 0);
+    len
+}
+
+pub fn spawn(index: u64, source: u64, args: &[&str], fds: &[u64]) -> u64 {
+    let args_vec: Vec<u64> = args.iter().map(|e| CString::new(*e).unwrap().as_c_str().as_ptr() as u64).collect();
+    let args_ptr = args_vec.as_ptr() as u64;
+    let fds_ptr = fds.as_ptr() as u64;
+    let mut pid: u64 = 0;
+    let spgs = [args.len() as u64, args_ptr, core::ptr::addr_of_mut!(pid) as u64, fds_ptr];
+    let spgs_ptr = spgs.as_ptr() as u64;
+    let ret = ecall(index, source, 0, 0, spgs_ptr, 0, 0, 2601);
+    assert!(ret == 0);
+    0
+}
+
+pub fn vm_version() -> u64 {
+    return ecall(0, 0, 0, 0, 0, 0, 0, 2041);
+}
+
+pub fn wait(pid: u64) -> u64 {
+    let mut code: u64 = 0;
+    let ret = ecall(pid, core::ptr::addr_of_mut!(code) as u64, 0, 0, 0, 0, 0, 2602);
+    assert!(ret == 0);
+    code
+}
+
+pub fn write(fd: u64, buf: &[u8]) -> u64 {
+    let mut len: u64 = buf.len() as u64;
+    let ret = ecall(fd, buf.as_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, 0, 0, 0, 2605);
+    assert!(ret == 0);
+    len
 }
