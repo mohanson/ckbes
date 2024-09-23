@@ -161,7 +161,8 @@ pub fn read(fd: u64, buf: &mut [u8]) -> u64 {
 }
 
 pub fn spawn(index: u64, source: u64, args: &[&str], fds: &[u64]) -> u64 {
-    let args_vec: Vec<u64> = args.iter().map(|e| CString::new(*e).unwrap().as_c_str().as_ptr() as u64).collect();
+    let args_vec: Vec<CString> = args.iter().map(|e| CString::new(*e).unwrap()).collect();
+    let args_vec: Vec<u64> = args_vec.iter().map(|e| e.as_bytes_with_nul().as_ptr() as u64).collect();
     let args_ptr = args_vec.as_ptr() as u64;
     let mut fdr = Vec::new();
     fdr.extend_from_slice(fds);
