@@ -97,3 +97,12 @@ pub fn load_tx() -> crate::conversion::Transaction {
     assert!(len <= 32 * 1024);
     crate::conversion::Transaction::molecule_decode(&buf[..len as usize])
 }
+
+pub fn load_witness(index: u64, source: u64) -> Vec<u8> {
+    let mut buf = [0; 32 * 1024];
+    let mut len: u64 = 32 * 1024;
+    let ret = ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, index, source, 0, 0, 2074);
+    assert!(ret == 0);
+    assert!(len <= 32 * 1024);
+    buf[..len as usize].to_vec()
+}
