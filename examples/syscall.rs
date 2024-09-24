@@ -10,13 +10,13 @@ pub unsafe extern "C" fn main() -> u64 {
     let current_cycles = ckbes::syscall::current_cycles();
     ckbes::syscall::debug(&format!("{:?}", current_cycles));
 
-    let cell = ckbes::syscall::load_cell(0, ckbes::conversion::SOURCE_INPUT);
+    let cell = ckbes::syscall::load_cell(0, ckbes::core::SOURCE_INPUT);
     ckbes::syscall::debug(&format!("{:?}", cell));
 
-    let cell_data = ckbes::syscall::load_cell_data(0, ckbes::conversion::SOURCE_INPUT);
+    let cell_data = ckbes::syscall::load_cell_data(0, ckbes::core::SOURCE_INPUT);
     ckbes::syscall::debug(&format!("{:?}", cell_data));
 
-    let input = ckbes::syscall::load_input(0, ckbes::conversion::SOURCE_INPUT);
+    let input = ckbes::syscall::load_input(0, ckbes::core::SOURCE_INPUT);
     ckbes::syscall::debug(&format!("{:?}", input));
 
     let script_hash = ckbes::syscall::load_script_hash();
