@@ -249,6 +249,10 @@ impl RawTransaction {
                 .collect(),
         }
     }
+
+    pub fn hash(&self) -> [u8; 32] {
+        crate::blake2b::blake2b_256(&self.molecule())
+    }
 }
 
 #[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
@@ -280,6 +284,10 @@ impl Transaction {
                 .map(|e| crate::molecule::Bytes::molecule_decode(&e))
                 .collect(),
         }
+    }
+
+    pub fn hash(&self) -> [u8; 32] {
+        self.raw.hash()
     }
 }
 
