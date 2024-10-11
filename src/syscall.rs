@@ -99,6 +99,15 @@ pub fn load_header(index: u64, source: u64) -> crate::core::Header {
     crate::core::Header::molecule_decode(&buf[..len as usize])
 }
 
+pub fn load_header_by_field(index: u64, source: u64, field: u64) -> Vec<u8> {
+    let mut buf = [0; 32 * 1024];
+    let mut len: u64 = 32 * 1024;
+    let ret = ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, index, source, field, 0, 2082);
+    assert!(ret == 0);
+    assert!(len <= 32 * 1024);
+    buf[..len as usize].to_vec()
+}
+
 pub fn load_input(index: u64, source: u64) -> crate::core::CellInput {
     let mut buf = [0; 32 * 1024];
     let mut len: u64 = 32 * 1024;
@@ -106,6 +115,15 @@ pub fn load_input(index: u64, source: u64) -> crate::core::CellInput {
     assert!(ret == 0);
     assert!(len <= 32 * 1024);
     crate::core::CellInput::molecule_decode(&buf[..len as usize])
+}
+
+pub fn load_input_by_field(index: u64, source: u64, field: u64) -> Vec<u8> {
+    let mut buf = [0; 32 * 1024];
+    let mut len: u64 = 32 * 1024;
+    let ret = ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, index, source, field, 0, 2083);
+    assert!(ret == 0);
+    assert!(len <= 32 * 1024);
+    buf[..len as usize].to_vec()
 }
 
 pub fn load_script_hash() -> [u8; 32] {
