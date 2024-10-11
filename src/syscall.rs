@@ -72,6 +72,15 @@ pub fn load_cell(index: u64, source: u64) -> crate::core::CellOutput {
     crate::core::CellOutput::molecule_decode(&buf[..len as usize])
 }
 
+pub fn load_cell_by_field(index: u64, source: u64, field: u64) -> Vec<u8> {
+    let mut buf = [0; 32 * 1024];
+    let mut len: u64 = 32 * 1024;
+    let ret = ecall(buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, index, source, field, 0, 2081);
+    assert!(ret == 0);
+    assert!(len <= 32 * 1024);
+    buf[..len as usize].to_vec()
+}
+
 pub fn load_cell_data(index: u64, source: u64) -> Vec<u8> {
     let mut buf = [0; 32 * 1024];
     let mut len: u64 = 32 * 1024;
