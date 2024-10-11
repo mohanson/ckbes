@@ -286,6 +286,44 @@ impl Transaction {
         }
     }
 
+    pub fn hash_sighash_all(&self) -> [u8; 32] {
+        let mut group: Vec<usize> = Vec::new();
+        let script_hash = crate::syscall::load_script_hash();
+        for i in 0..self.raw.inputs.len() {
+            let search_hash = crate::syscall::load_cell_by_field(i as u64, SOURCE_INPUT, 3);
+            if search_hash == script_hash {
+                group.push(i);
+            }
+        }
+        let major = group[0];
+        group.remove(0);
+        let other = group.into_iter().take_while(|&e| e < self.witnesses.len());
+
+        let major_w = self.witnesses[major].clone();
+        let mut major_a = WitnessArgs::molecule_decode(&major_w);
+        major_a.lock = Some(vec![0; major_a.lock.unwrap().len()]);
+        let major_w = major_a.molecule();
+        let major_l = major_w.len() as u64;
+
+        let mut b = Vec::new();
+        b.extend_from_slice(&self.hash());
+        b.extend_from_slice(&major_l.to_le_bytes());
+        b.extend_from_slice(&major_w);
+        for i in other {
+            let other_w = self.witnesses[i].clone();
+            let other_l = other_w.len() as u64;
+            b.extend_from_slice(&other_l.to_le_bytes());
+            b.extend_from_slice(&other_w);
+        }
+        for i in self.raw.inputs.len()..self.witnesses.len() {
+            let extra_w = self.witnesses[i].clone();
+            let extra_l = extra_w.len() as u64;
+            b.extend_from_slice(&extra_l.to_le_bytes());
+            b.extend_from_slice(&extra_w);
+        }
+        crate::blake2b::blake2b_256(b)
+    }
+
     pub fn hash(&self) -> [u8; 32] {
         self.raw.hash()
     }
