@@ -187,6 +187,23 @@ pub fn read(fd: u64, buf: &mut [u8]) -> u64 {
     len
 }
 
+pub fn read_all(fd: u64) -> Vec<u8> {
+    let mut out = Vec::new();
+    let mut buf = [0; 256];
+    loop {
+        let mut len = 256;
+        let ret = ecall(fd, buf.as_mut_ptr() as u64, core::ptr::addr_of_mut!(len) as u64, 0, 0, 0, 0, 2606);
+        assert!(ret == 0 || ret == 7);
+        if ret == 0 {
+            out.extend_from_slice(&buf[..len]);
+        }
+        if ret == 7 {
+            break;
+        }
+    }
+    out
+}
+
 pub fn spawn(index: u64, source: u64, args: &[&str], fds: &[u64]) -> u64 {
     let args_vec: Vec<CString> = args.iter().map(|e| CString::new(*e).unwrap()).collect();
     let args_vec: Vec<u64> = args_vec.iter().map(|e| e.as_bytes_with_nul().as_ptr() as u64).collect();
