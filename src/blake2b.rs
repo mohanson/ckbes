@@ -1,8 +1,11 @@
 pub fn blake2b_256<T: AsRef<[u8]>>(data: T) -> [u8; 32] {
-    let mut h = blake2b_ref::Blake2bBuilder::new(32).personal(b"ckb-default-hash").build();
-    let mut r = [0; 32];
+    let mut p = blake2ya::blake2b_params();
+    p.digest(32);
+    p.person(b"ckb-default-hash");
+    let mut h = blake2ya::blake2b(p);
     h.update(data.as_ref());
-    h.finalize(&mut r);
+    let mut r = [0; 32];
+    h.digest(&mut r);
     r
 }
 

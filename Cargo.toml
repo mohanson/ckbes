@@ -6,5 +6,5 @@ description = "CKB Easy Script is a framework for developing ckb contracts."
 license = "MIT"
 
 [dependencies]
-blake2b-ref = "0.3"
+blake2ya = "0.9"
 linked_list_allocator = "0.10"
