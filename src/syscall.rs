@@ -7,7 +7,7 @@ pub fn close(fd: u64) {
 }
 
 pub fn current_cycles() -> u64 {
-    return ecall(0, 0, 0, 0, 0, 0, 0, 2042);
+    ecall(0, 0, 0, 0, 0, 0, 0, 2042)
 }
 
 pub fn debug(msg: &str) -> u64 {
@@ -38,12 +38,12 @@ pub fn exec(index: u64, source: u64, args: &[&str]) -> ! {
     let args_ptr = args_vec.as_ptr() as u64;
     let ret = ecall(index, source, 0, 0, args.len() as u64, args_ptr, 0, 2043);
     assert!(ret == 0);
-    loop {}
+    panic!();
 }
 
 pub fn exit(code: u64) -> ! {
     ecall(code, 0, 0, 0, 0, 0, 0, 93);
-    loop {}
+    panic!();
 }
 
 pub fn inherited_fds() -> Vec<u64> {
@@ -221,7 +221,7 @@ pub fn spawn(index: u64, source: u64, args: &[&str], fds: &[u64]) -> u64 {
 }
 
 pub fn vm_version() -> u64 {
-    return ecall(0, 0, 0, 0, 0, 0, 0, 2041);
+    ecall(0, 0, 0, 0, 0, 0, 0, 2041)
 }
 
 pub fn wait(pid: u64) -> u64 {

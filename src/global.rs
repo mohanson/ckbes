@@ -29,13 +29,11 @@ pub unsafe extern "C" fn _start() {
 #[no_mangle]
 pub unsafe extern "C" fn _entry(argc: u64, argv: *const *const i8) {
     unsafe {
-        #[allow(static_mut_refs)]
         LALC.lock().init(HEAP.as_mut_ptr(), 1024 * 1024);
     }
     for i in 0..argc {
         let argn = core::ffi::CStr::from_ptr(argv.add(i as usize).read());
         let argn = String::from(argn.to_string_lossy());
-        #[allow(static_mut_refs)]
         ARGS.push(argn);
     }
     core::arch::asm!("call main");

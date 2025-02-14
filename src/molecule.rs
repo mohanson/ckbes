@@ -25,7 +25,7 @@ pub fn decode_fixvec(data: &[u8]) -> Vec<Vec<u8>> {
     let icnt = u32::from_le_bytes(data[0..4].try_into().unwrap()) as usize;
     let mut body: Vec<Vec<u8>> = vec![];
     if icnt > 0 {
-        let size = data[4..].len() as usize / icnt;
+        let size = data[4..].len() / icnt;
         for i in 0..icnt {
             body.push(data[4 + i * size..4 + i * size + size].to_vec());
         }
@@ -116,7 +116,7 @@ impl Byte32 {
     pub fn molecule_decode(data: &[u8]) -> [u8; 32] {
         assert_eq!(data.len(), 32);
         let mut r = [0u8; 32];
-        r.copy_from_slice(&data);
+        r.copy_from_slice(data);
         r
     }
 
