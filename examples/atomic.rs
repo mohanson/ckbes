@@ -72,7 +72,7 @@ fn uint_max() {
     assert_eq!(x.load(SeqCst), 0xf731);
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn main() -> u64 {
     bool_compare_exchange();
     bool_and();

@@ -3,7 +3,7 @@
 
 extern crate ckbes;
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn main() -> u64 {
     let argv = ["Hello", "World!"];
     let fds = ckbes::syscall::pipe();

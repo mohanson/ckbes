@@ -3,7 +3,7 @@
 
 extern crate ckbes;
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn main() -> u64 {
     let fds = ckbes::syscall::inherited_fds();
     let out = ckbes::global::ARGS.lock().join(" ");

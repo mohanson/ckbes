@@ -5,7 +5,7 @@ extern crate alloc;
 extern crate ckbes;
 use alloc::format;
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn main() -> u64 {
     let current_cycles = ckbes::syscall::current_cycles();
     ckbes::syscall::debug(&format!("{:?}", current_cycles));

@@ -3,7 +3,7 @@
 
 extern crate ckbes;
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn main() -> u64 {
     let tx = ckbes::syscall::load_tx();
     let sighash_all = tx.hash_sighash_all();

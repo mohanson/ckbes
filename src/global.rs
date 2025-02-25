@@ -14,27 +14,29 @@ pub fn panic_handler(i: &core::panic::PanicInfo) -> ! {
     crate::syscall::exit(101)
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn _start() {
-    core::arch::asm!(
-        "lw a0,0(sp)", // Argc.
-        "add a1,sp,8", // Argv.
-        "li a2,0",     // Envp.
-        "call _entry",
-        "li a7, 93",
-        "ecall",
-    );
+    unsafe {
+        core::arch::asm!(
+            "lw a0,0(sp)", // Argc.
+            "add a1,sp,8", // Argv.
+            "li a2,0",     // Envp.
+            "call _entry",
+            "li a7, 93",
+            "ecall",
+        );
+    }
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "C" fn _entry(argc: u64, argv: *const *const u8) {
     unsafe {
         LALC.lock().init(HEAP.lock().as_mut_ptr(), 1024 * 1024);
+        for i in 0..argc {
+            let argn = core::ffi::CStr::from_ptr(argv.add(i as usize).read());
+            let argn = String::from(argn.to_string_lossy());
+            ARGS.lock().push(argn);
+        }
+        core::arch::asm!("call main");
     }
-    for i in 0..argc {
-        let argn = core::ffi::CStr::from_ptr(argv.add(i as usize).read());
-        let argn = String::from(argn.to_string_lossy());
-        ARGS.lock().push(argn);
-    }
-    core::arch::asm!("call main");
 }
