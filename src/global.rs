@@ -27,7 +27,7 @@ pub unsafe extern "C" fn _start() {
 }
 
 #[no_mangle]
-pub unsafe extern "C" fn _entry(argc: u64, argv: *const *const i8) {
+pub unsafe extern "C" fn _entry(argc: u64, argv: *const *const u8) {
     unsafe {
         LALC.lock().init(HEAP.lock().as_mut_ptr(), 1024 * 1024);
     }
