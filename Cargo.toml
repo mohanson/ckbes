@@ -9,3 +9,8 @@ license = "MIT"
 blake2ya = "1.0"
 linked_list_allocator = "0.10"
 spinning_top = "0.3"
+
+[profile.release]
+codegen-units = 1
+overflow-checks = true
+strip = true
