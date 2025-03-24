@@ -16,6 +16,7 @@ pub fn debug(msg: &str) -> u64 {
     ecall(data.as_ptr() as u64, 0, 0, 0, 0, 0, 0, 2177)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn ecall(mut a0: u64, a1: u64, a2: u64, a3: u64, a4: u64, a5: u64, a6: u64, a7: u64) -> u64 {
     unsafe {
         core::arch::asm!(

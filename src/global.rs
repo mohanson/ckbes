@@ -14,6 +14,7 @@ pub fn panic_handler(i: &core::panic::PanicInfo) -> ! {
     crate::syscall::exit(101)
 }
 
+#[allow(clippy::missing_safety_doc)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn _start() {
     unsafe {
@@ -28,6 +29,7 @@ pub unsafe extern "C" fn _start() {
     }
 }
 
+#[allow(clippy::missing_safety_doc)]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn _entry(argc: u64, argv: *const *const u8) {
     unsafe {

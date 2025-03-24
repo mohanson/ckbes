@@ -388,6 +388,7 @@ pub struct RawHeader {
 }
 
 impl RawHeader {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         version: u32,
         compact_target: u32,
