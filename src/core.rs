@@ -38,18 +38,18 @@ impl Script {
 
     pub fn molecule(&self) -> Vec<u8> {
         crate::molecule::encode_dynvec(vec![
-            crate::molecule::Byte32::new(self.code_hash).molecule(),
-            crate::molecule::Byte::new(self.hash_type).molecule(),
-            crate::molecule::Bytes::new(self.args.clone()).molecule(),
+            crate::molecule::encode_byte32(self.code_hash),
+            crate::molecule::encode_byte(self.hash_type),
+            crate::molecule::encode_bytes(&self.args),
         ])
     }
 
     pub fn molecule_decode(data: &[u8]) -> Self {
         let result = crate::molecule::decode_dynvec(data);
         Self {
-            code_hash: crate::molecule::Byte32::molecule_decode(&result[0]),
-            hash_type: crate::molecule::Byte::molecule_decode(&result[1]),
-            args: crate::molecule::Bytes::molecule_decode(&result[2]),
+            code_hash: crate::molecule::decode_byte32(&result[0]),
+            hash_type: crate::molecule::decode_byte(&result[1]),
+            args: crate::molecule::decode_bytes(&result[2]),
         }
     }
 
@@ -71,24 +71,18 @@ impl OutPoint {
 
     pub fn molecule(&self) -> Vec<u8> {
         crate::molecule::encode_seq(vec![
-            crate::molecule::Byte32::new(self.tx_hash).molecule(),
-            crate::molecule::U32::new(self.index).molecule(),
+            crate::molecule::encode_byte32(self.tx_hash),
+            crate::molecule::encode_u32(self.index),
         ])
     }
 
     pub fn molecule_decode(data: &[u8]) -> Self {
-        let result = crate::molecule::decode_seq(
-            data,
-            &[crate::molecule::Byte32::molecule_size(), crate::molecule::U32::molecule_size()],
-        );
-        Self {
-            tx_hash: crate::molecule::Byte32::molecule_decode(&result[0]),
-            index: crate::molecule::U32::molecule_decode(&result[1]),
-        }
+        let result = crate::molecule::decode_seq(data, &[32, 4]);
+        Self { tx_hash: crate::molecule::decode_byte32(&result[0]), index: crate::molecule::decode_u32(&result[1]) }
     }
 
     pub fn molecule_size() -> usize {
-        crate::molecule::Byte32::molecule_size() + crate::molecule::U32::molecule_size()
+        32 + 4
     }
 }
 
@@ -104,23 +98,19 @@ impl CellInput {
     }
 
     pub fn molecule(&self) -> Vec<u8> {
-        crate::molecule::encode_seq(vec![
-            crate::molecule::U64::new(self.since).molecule(),
-            self.previous_output.molecule(),
-        ])
+        crate::molecule::encode_seq(vec![crate::molecule::encode_u64(self.since), self.previous_output.molecule()])
     }
 
     pub fn molecule_decode(data: &[u8]) -> Self {
-        let result =
-            crate::molecule::decode_seq(data, &[crate::molecule::U64::molecule_size(), OutPoint::molecule_size()]);
+        let result = crate::molecule::decode_seq(data, &[8, OutPoint::molecule_size()]);
         CellInput {
-            since: crate::molecule::U64::molecule_decode(&result[0]),
+            since: crate::molecule::decode_u64(&result[0]),
             previous_output: OutPoint::molecule_decode(&result[1]),
         }
     }
 
     pub fn molecule_size() -> usize {
-        crate::molecule::U64::molecule_size() + OutPoint::molecule_size()
+        8 + OutPoint::molecule_size()
     }
 }
 
@@ -128,20 +118,20 @@ impl CellInput {
 pub struct CellOutput {
     pub capacity: u64,
     pub lock: Script,
-    pub kype: Option<Script>,
+    pub type_: Option<Script>,
 }
 
 impl CellOutput {
-    pub fn new(capacity: u64, lock: Script, kype: Option<Script>) -> Self {
-        Self { capacity, lock, kype }
+    pub fn new(capacity: u64, lock: Script, type_: Option<Script>) -> Self {
+        Self { capacity, lock, type_ }
     }
 
     pub fn molecule(&self) -> Vec<u8> {
         crate::molecule::encode_dynvec(vec![
-            crate::molecule::U64::new(self.capacity).molecule(),
+            crate::molecule::encode_u64(self.capacity),
             self.lock.molecule(),
-            match &self.kype {
-                Some(kype) => kype.molecule(),
+            match &self.type_ {
+                Some(type_) => type_.molecule(),
                 None => vec![],
             },
         ])
@@ -150,9 +140,9 @@ impl CellOutput {
     pub fn molecule_decode(data: &[u8]) -> Self {
         let result = crate::molecule::decode_dynvec(data);
         CellOutput {
-            capacity: crate::molecule::U64::molecule_decode(&result[0]),
+            capacity: crate::molecule::decode_u64(&result[0]),
             lock: Script::molecule_decode(&result[1]),
-            kype: if !result[2].is_empty() { Some(Script::molecule_decode(&result[2])) } else { None },
+            type_: if !result[2].is_empty() { Some(Script::molecule_decode(&result[2])) } else { None },
         }
     }
 }
@@ -169,23 +159,16 @@ impl CellDep {
     }
 
     pub fn molecule(&self) -> Vec<u8> {
-        crate::molecule::encode_seq(vec![
-            self.out_point.molecule(),
-            crate::molecule::Byte::new(self.dep_type).molecule(),
-        ])
+        crate::molecule::encode_seq(vec![self.out_point.molecule(), crate::molecule::encode_byte(self.dep_type)])
     }
 
     pub fn molecule_decode(data: &[u8]) -> Self {
-        let result =
-            crate::molecule::decode_seq(data, &[OutPoint::molecule_size(), crate::molecule::Byte::molecule_size()]);
-        CellDep {
-            out_point: OutPoint::molecule_decode(&result[0]),
-            dep_type: crate::molecule::Byte::molecule_decode(&result[1]),
-        }
+        let result = crate::molecule::decode_seq(data, &[OutPoint::molecule_size(), 1]);
+        CellDep { out_point: OutPoint::molecule_decode(&result[0]), dep_type: crate::molecule::decode_byte(&result[1]) }
     }
 
     pub fn molecule_size() -> usize {
-        OutPoint::molecule_size() + crate::molecule::Byte::molecule_size()
+        OutPoint::molecule_size() + 1
     }
 }
 
@@ -213,15 +196,15 @@ impl RawTransaction {
 
     pub fn molecule(&self) -> Vec<u8> {
         crate::molecule::encode_dynvec(vec![
-            crate::molecule::U32::new(self.version).molecule(),
+            crate::molecule::encode_u32(self.version),
             crate::molecule::encode_fixvec(self.cell_deps.iter().map(|e| e.molecule()).collect()),
             crate::molecule::encode_fixvec(
-                self.header_deps.iter().map(|e| crate::molecule::Byte32::new(*e).molecule()).collect(),
+                self.header_deps.iter().map(|e| crate::molecule::encode_byte32(*e)).collect(),
             ),
             crate::molecule::encode_fixvec(self.inputs.iter().map(|e| e.molecule()).collect()),
             crate::molecule::encode_dynvec(self.outputs.iter().map(|e| e.molecule()).collect()),
             crate::molecule::encode_dynvec(
-                self.outputs_data.iter().map(|e| crate::molecule::Bytes::new(e.clone()).molecule()).collect(),
+                self.outputs_data.iter().map(|e| crate::molecule::encode_bytes(e)).collect(),
             ),
         ])
     }
@@ -229,11 +212,11 @@ impl RawTransaction {
     pub fn molecule_decode(data: &[u8]) -> Self {
         let result = crate::molecule::decode_dynvec(data);
         Self {
-            version: crate::molecule::U32::molecule_decode(&result[0]),
+            version: crate::molecule::decode_u32(&result[0]),
             cell_deps: crate::molecule::decode_fixvec(&result[1]).iter().map(|e| CellDep::molecule_decode(e)).collect(),
             header_deps: crate::molecule::decode_fixvec(&result[2])
                 .iter()
-                .map(|e| crate::molecule::Byte32::molecule_decode(e))
+                .map(|e| crate::molecule::decode_byte32(e))
                 .collect(),
             inputs: crate::molecule::decode_fixvec(&result[3]).iter().map(|e| CellInput::molecule_decode(e)).collect(),
             outputs: crate::molecule::decode_dynvec(&result[4])
@@ -242,7 +225,7 @@ impl RawTransaction {
                 .collect(),
             outputs_data: crate::molecule::decode_dynvec(&result[5])
                 .iter()
-                .map(|e| crate::molecule::Bytes::molecule_decode(e))
+                .map(|e| crate::molecule::decode_bytes(e))
                 .collect(),
         }
     }
@@ -266,9 +249,7 @@ impl Transaction {
     pub fn molecule(&self) -> Vec<u8> {
         crate::molecule::encode_dynvec(vec![
             self.raw.molecule(),
-            crate::molecule::encode_dynvec(
-                self.witnesses.iter().map(|e| crate::molecule::Bytes::new(e.clone()).molecule()).collect(),
-            ),
+            crate::molecule::encode_dynvec(self.witnesses.iter().map(|e| crate::molecule::encode_bytes(e)).collect()),
         ])
     }
 
@@ -278,7 +259,7 @@ impl Transaction {
             raw: RawTransaction::molecule_decode(&result[0]),
             witnesses: crate::molecule::decode_dynvec(&result[1])
                 .iter()
-                .map(|e| crate::molecule::Bytes::molecule_decode(e))
+                .map(|e| crate::molecule::decode_bytes(e))
                 .collect(),
         }
     }
@@ -341,15 +322,15 @@ impl WitnessArgs {
     pub fn molecule(&self) -> Vec<u8> {
         crate::molecule::encode_dynvec(vec![
             match &self.lock {
-                Some(lock) => crate::molecule::Bytes::new(lock.clone()).molecule(),
+                Some(lock) => crate::molecule::encode_bytes(lock),
                 None => vec![],
             },
             match &self.input_type {
-                Some(kype) => crate::molecule::Bytes::new(kype.clone()).molecule(),
+                Some(type_) => crate::molecule::encode_bytes(type_),
                 None => vec![],
             },
             match &self.output_type {
-                Some(kype) => crate::molecule::Bytes::new(kype.clone()).molecule(),
+                Some(type_) => crate::molecule::encode_bytes(type_),
                 None => vec![],
             },
         ])
@@ -358,17 +339,9 @@ impl WitnessArgs {
     pub fn molecule_decode(data: &[u8]) -> Self {
         let result = crate::molecule::decode_dynvec(data);
         Self {
-            lock: if !result[0].is_empty() { Some(crate::molecule::Bytes::molecule_decode(&result[0])) } else { None },
-            input_type: if !result[1].is_empty() {
-                Some(crate::molecule::Bytes::molecule_decode(&result[1]))
-            } else {
-                None
-            },
-            output_type: if !result[2].is_empty() {
-                Some(crate::molecule::Bytes::molecule_decode(&result[2]))
-            } else {
-                None
-            },
+            lock: if !result[0].is_empty() { Some(crate::molecule::decode_bytes(&result[0])) } else { None },
+            input_type: if !result[1].is_empty() { Some(crate::molecule::decode_bytes(&result[1])) } else { None },
+            output_type: if !result[2].is_empty() { Some(crate::molecule::decode_bytes(&result[2])) } else { None },
         }
     }
 }
@@ -417,64 +390,37 @@ impl RawHeader {
 
     pub fn molecule(&self) -> Vec<u8> {
         crate::molecule::encode_seq(vec![
-            crate::molecule::U32::new(self.version).molecule(),
-            crate::molecule::U32::new(self.compact_target).molecule(),
-            crate::molecule::U64::new(self.timestamp).molecule(),
-            crate::molecule::U64::new(self.number).molecule(),
-            crate::molecule::U64::new(self.epoch).molecule(),
-            crate::molecule::Byte32::new(self.parent_hash).molecule(),
-            crate::molecule::Byte32::new(self.transactions_root).molecule(),
-            crate::molecule::Byte32::new(self.proposals_hash).molecule(),
-            crate::molecule::Byte32::new(self.extra_hash).molecule(),
-            crate::molecule::Byte32::new(self.dao).molecule(),
+            crate::molecule::encode_u32(self.version),
+            crate::molecule::encode_u32(self.compact_target),
+            crate::molecule::encode_u64(self.timestamp),
+            crate::molecule::encode_u64(self.number),
+            crate::molecule::encode_u64(self.epoch),
+            crate::molecule::encode_byte32(self.parent_hash),
+            crate::molecule::encode_byte32(self.transactions_root),
+            crate::molecule::encode_byte32(self.proposals_hash),
+            crate::molecule::encode_byte32(self.extra_hash),
+            crate::molecule::encode_byte32(self.dao),
         ])
     }
 
     pub fn molecule_decode(data: &[u8]) -> Self {
-        let result = crate::molecule::decode_seq(
-            data,
-            &[
-                crate::molecule::U32::molecule_size(),
-                crate::molecule::U32::molecule_size(),
-                crate::molecule::U64::molecule_size(),
-                crate::molecule::U64::molecule_size(),
-                crate::molecule::U64::molecule_size(),
-                crate::molecule::Byte32::molecule_size(),
-                crate::molecule::Byte32::molecule_size(),
-                crate::molecule::Byte32::molecule_size(),
-                crate::molecule::Byte32::molecule_size(),
-                crate::molecule::Byte32::molecule_size(),
-            ],
-        );
+        let result = crate::molecule::decode_seq(data, &[4, 4, 8, 8, 8, 32, 32, 32, 32, 32]);
         Self {
-            version: crate::molecule::U32::molecule_decode(&result[0]),
-            compact_target: crate::molecule::U32::molecule_decode(&result[1]),
-            timestamp: crate::molecule::U64::molecule_decode(&result[2]),
-            number: crate::molecule::U64::molecule_decode(&result[3]),
-            epoch: crate::molecule::U64::molecule_decode(&result[4]),
-            parent_hash: crate::molecule::Byte32::molecule_decode(&result[5]),
-            transactions_root: crate::molecule::Byte32::molecule_decode(&result[6]),
-            proposals_hash: crate::molecule::Byte32::molecule_decode(&result[7]),
-            extra_hash: crate::molecule::Byte32::molecule_decode(&result[8]),
-            dao: crate::molecule::Byte32::molecule_decode(&result[9]),
+            version: crate::molecule::decode_u32(&result[0]),
+            compact_target: crate::molecule::decode_u32(&result[1]),
+            timestamp: crate::molecule::decode_u64(&result[2]),
+            number: crate::molecule::decode_u64(&result[3]),
+            epoch: crate::molecule::decode_u64(&result[4]),
+            parent_hash: crate::molecule::decode_byte32(&result[5]),
+            transactions_root: crate::molecule::decode_byte32(&result[6]),
+            proposals_hash: crate::molecule::decode_byte32(&result[7]),
+            extra_hash: crate::molecule::decode_byte32(&result[8]),
+            dao: crate::molecule::decode_byte32(&result[9]),
         }
     }
 
     pub fn molecule_size() -> usize {
-        [
-            crate::molecule::U32::molecule_size(),
-            crate::molecule::U32::molecule_size(),
-            crate::molecule::U64::molecule_size(),
-            crate::molecule::U64::molecule_size(),
-            crate::molecule::U64::molecule_size(),
-            crate::molecule::Byte32::molecule_size(),
-            crate::molecule::Byte32::molecule_size(),
-            crate::molecule::Byte32::molecule_size(),
-            crate::molecule::Byte32::molecule_size(),
-            crate::molecule::Byte32::molecule_size(),
-        ]
-        .iter()
-        .sum()
+        4 + 4 + 8 + 8 + 8 + 32 + 32 + 32 + 32 + 32
     }
 }
 
@@ -490,17 +436,16 @@ impl Header {
     }
 
     pub fn molecule(&self) -> Vec<u8> {
-        crate::molecule::encode_seq(vec![self.raw.molecule(), crate::molecule::U128::new(self.nonce).molecule()])
+        crate::molecule::encode_seq(vec![self.raw.molecule(), crate::molecule::encode_u128(self.nonce)])
     }
 
     pub fn molecule_decode(data: &[u8]) -> Self {
-        let result =
-            crate::molecule::decode_seq(data, &[RawHeader::molecule_size(), crate::molecule::U128::molecule_size()]);
-        Self { raw: RawHeader::molecule_decode(&result[0]), nonce: crate::molecule::U128::molecule_decode(&result[1]) }
+        let result = crate::molecule::decode_seq(data, &[RawHeader::molecule_size(), 16]);
+        Self { raw: RawHeader::molecule_decode(&result[0]), nonce: crate::molecule::decode_u128(&result[1]) }
     }
 
     pub fn molecule_size() -> usize {
-        RawHeader::molecule_size() + crate::molecule::U128::molecule_size()
+        RawHeader::molecule_size() + 16
     }
 }
 
@@ -595,7 +540,7 @@ impl BlockV1 {
             crate::molecule::encode_dynvec(self.uncles.iter().map(|e| e.molecule()).collect()),
             crate::molecule::encode_dynvec(self.transactions.iter().map(|e| e.molecule()).collect()),
             crate::molecule::encode_fixvec(self.proposals.clone()),
-            crate::molecule::Bytes::new(self.extension.clone()).molecule(),
+            crate::molecule::encode_bytes(&self.extension),
         ])
     }
 
@@ -609,7 +554,7 @@ impl BlockV1 {
                 .map(|e| Transaction::molecule_decode(e))
                 .collect(),
             proposals: crate::molecule::decode_fixvec(&result[3]),
-            extension: crate::molecule::Bytes::molecule_decode(&result[4]),
+            extension: crate::molecule::decode_bytes(&result[4]),
         }
     }
 }
@@ -626,14 +571,11 @@ impl CellbaseWitness {
     }
 
     pub fn molecule(&self) -> Vec<u8> {
-        crate::molecule::encode_dynvec(vec![
-            self.lock.molecule(),
-            crate::molecule::Bytes::new(self.message.clone()).molecule(),
-        ])
+        crate::molecule::encode_dynvec(vec![self.lock.molecule(), crate::molecule::encode_bytes(&self.message)])
     }
 
     pub fn molecule_decode(data: &[u8]) -> Self {
         let result = crate::molecule::decode_dynvec(data);
-        Self { lock: Script::molecule_decode(&result[0]), message: crate::molecule::Bytes::molecule_decode(&result[1]) }
+        Self { lock: Script::molecule_decode(&result[0]), message: crate::molecule::decode_bytes(&result[1]) }
     }
 }
