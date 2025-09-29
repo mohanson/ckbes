@@ -1,5 +1,6 @@
 #![no_std]
 extern crate alloc;
+pub mod balloc;
 pub mod blake2b;
 pub mod core;
 pub mod global;

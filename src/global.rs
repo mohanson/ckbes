@@ -1,10 +1,10 @@
+use crate::balloc::Allocator;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
-pub static HEAP: spinning_top::Spinlock<[u8; 1024 * 1024]> = spinning_top::Spinlock::new([0; 1024 * 1024]);
 #[global_allocator]
-pub static LALC: linked_list_allocator::LockedHeap = linked_list_allocator::LockedHeap::empty();
-pub static ARGS: spinning_top::Spinlock<Vec<String>> = spinning_top::Spinlock::new(Vec::new());
+pub static LALC: Allocator = Allocator::global();
+pub static mut ARGS: Vec<String> = Vec::new();
 
 #[panic_handler]
 pub fn panic_handler(i: &core::panic::PanicInfo) -> ! {
@@ -33,11 +33,11 @@ pub unsafe extern "C" fn _start() {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn _entry(argc: u64, argv: *const *const u8) {
     unsafe {
-        LALC.lock().init(HEAP.lock().as_mut_ptr(), 1024 * 1024);
         for i in 0..argc {
             let argn = core::ffi::CStr::from_ptr(argv.add(i as usize).read());
             let argn = String::from(argn.to_string_lossy());
-            ARGS.lock().push(argn);
+            #[allow(static_mut_refs)]
+            ARGS.push(argn);
         }
         core::arch::asm!("call main");
     }
