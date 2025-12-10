@@ -97,39 +97,39 @@ impl Algorithm {
 
     fn buddy_unused(&mut self, order: usize, ptr: *mut u8) -> bool {
         unsafe {
-            let need = ptr.offset_from(PTR_ALLOC) as usize;
-            let mut prev = FREE_LIST[order];
+            let buddy_offset = ptr.offset_from(PTR_ALLOC) as usize;
+            let mut block_offset = FREE_LIST[order];
             loop {
-                if prev == need {
-                    break prev != usize::MAX;
+                if block_offset == buddy_offset {
+                    break block_offset != usize::MAX;
                 }
-                if prev == usize::MAX {
-                    break prev == need;
+                if block_offset == usize::MAX {
+                    break block_offset == buddy_offset;
                 }
-                let next = *(PTR_ALLOC.add(prev) as *const usize);
-                prev = next;
+                block_offset = uldr(PTR_ALLOC.add(block_offset));
             }
         }
     }
 
     fn buddy_close(&mut self, order: usize, ptr: *mut u8) {
         unsafe {
-            let need = ptr.offset_from(PTR_ALLOC) as usize;
-            let mut prev = FREE_LIST[order];
-            if prev == need {
-                FREE_LIST[order] = *(PTR_ALLOC.add(need) as *const usize);
+            let buddy_offset = ptr.offset_from(PTR_ALLOC) as usize;
+            let mut block_offset = FREE_LIST[order];
+            let mut block_offtmp: usize;
+            if block_offset == buddy_offset {
+                FREE_LIST[order] = uldr(PTR_ALLOC.add(block_offset));
                 return;
             }
             loop {
-                if prev == usize::MAX {
+                if block_offset == usize::MAX {
                     break;
                 }
-                let next = *(PTR_ALLOC.add(prev) as *const usize);
-                if next == need {
-                    *(PTR_ALLOC.add(prev) as *mut usize) = *(PTR_ALLOC.add(next) as *const usize);
+                block_offtmp = uldr(PTR_ALLOC.add(block_offset));
+                if block_offtmp == buddy_offset {
+                    ustr(PTR_ALLOC.add(block_offset), uldr(PTR_ALLOC.add(block_offtmp)));
                     break;
                 }
-                prev = next;
+                block_offset = block_offtmp;
             }
         }
     }
