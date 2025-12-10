@@ -9,7 +9,6 @@ use core::alloc::{GlobalAlloc, Layout};
 use core::cell::UnsafeCell;
 use core::cmp::min;
 use core::ptr::{self, addr_of_mut};
-use core::usize;
 
 pub const MIN_BLOCK: usize = 64;
 pub const MAX_ORDER: usize = 14;
