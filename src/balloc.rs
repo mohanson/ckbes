@@ -7,7 +7,9 @@
 
 use core::alloc::{GlobalAlloc, Layout};
 use core::cell::UnsafeCell;
+use core::cmp::min;
 use core::ptr::{self, addr_of_mut};
+use core::usize;
 
 pub static MIN_BLOCK: usize = 64;
 pub static MAX_ORDER: usize = 14;
@@ -18,15 +20,20 @@ pub static mut FREE_LIST: [usize; MAX_ORDER + 1] = {
     list
 };
 pub static mut PRE_ALLOC: [u8; MAX_TOTAL] = {
+    assert!(matches!(usize::BITS, 32 | 64));
     let mut alloc = [0; MAX_TOTAL];
-    alloc[0] = 0xff;
-    alloc[1] = 0xff;
-    alloc[2] = 0xff;
-    alloc[3] = 0xff;
-    alloc[4] = 0xff;
-    alloc[5] = 0xff;
-    alloc[6] = 0xff;
-    alloc[7] = 0xff;
+    if usize::BITS >= 32 {
+        alloc[0] = 0xff;
+        alloc[1] = 0xff;
+        alloc[2] = 0xff;
+        alloc[3] = 0xff;
+    }
+    if usize::BITS >= 64 {
+        alloc[4] = 0xff;
+        alloc[5] = 0xff;
+        alloc[6] = 0xff;
+        alloc[7] = 0xff;
+    }
     alloc
 };
 
@@ -35,23 +42,25 @@ pub struct Algorithm;
 impl Algorithm {
     pub fn alloc_block(&mut self, order: usize) -> *mut u8 {
         unsafe {
-            if FREE_LIST[order] != usize::MAX {
-                let block_offset = FREE_LIST[order];
-                let block_ptr = (addr_of_mut!(PRE_ALLOC) as *mut u8).add(block_offset);
-                FREE_LIST[order] = *(block_ptr as *const usize);
-                return block_ptr;
-            }
-            if order >= MAX_ORDER {
+            if order > MAX_ORDER {
                 return ptr::null_mut();
+            }
+            if FREE_LIST[order] != usize::MAX {
+                let start_ptr = addr_of_mut!(PRE_ALLOC) as *mut u8;
+                let block_offset = FREE_LIST[order];
+                let block_ptr = start_ptr.add(block_offset);
+                FREE_LIST[order] = uldr(block_ptr);
+                return block_ptr;
             }
             let block = self.alloc_block(order + 1);
             if block.is_null() {
                 return ptr::null_mut();
             }
+            let start_ptr = addr_of_mut!(PRE_ALLOC) as *mut u8;
             let block_size = MIN_BLOCK << order;
             let buddy_ptr = block.add(block_size);
-            let buddy_offset = buddy_ptr.offset_from(addr_of_mut!(PRE_ALLOC) as *const u8) as usize;
-            *(buddy_ptr as *mut usize) = usize::MAX;
+            let buddy_offset = buddy_ptr.offset_from(start_ptr) as usize;
+            ustr(buddy_ptr, usize::MAX);
             FREE_LIST[order] = buddy_offset;
             block
         }
@@ -62,17 +71,17 @@ impl Algorithm {
             if ptr.is_null() {
                 return;
             }
-            let start_ptr = addr_of_mut!(PRE_ALLOC) as *const u8;
+            let start_ptr = addr_of_mut!(PRE_ALLOC) as *mut u8;
             let block_ptr = ptr;
             let block_size = MIN_BLOCK << order;
             let block_offset = block_ptr.offset_from(start_ptr) as usize;
             let block_idx = block_offset / block_size;
             let buddy_idx = block_idx ^ 1;
             let buddy_offset = buddy_idx * block_size;
-            let buddy_ptr = start_ptr.add(buddy_offset) as *mut u8;
+            let buddy_ptr = start_ptr.add(buddy_offset);
             if self.buddy_unused(order, buddy_ptr) {
                 self.buddy_close(order, buddy_ptr);
-                self.close_block(order + 1, core::cmp::min(block_ptr, buddy_ptr));
+                self.close_block(order + 1, min(block_ptr, buddy_ptr));
                 return;
             }
             *(block_ptr as *mut usize) = FREE_LIST[order];
@@ -165,4 +174,14 @@ fn log2(m: usize, n: usize) -> usize {
         m <<= 1;
     }
     unreachable!()
+}
+
+fn uldr(p: *mut u8) -> usize {
+    unsafe { *(p as *const usize) }
+}
+
+fn ustr(p: *mut u8, n: usize) {
+    unsafe {
+        *(p as *mut usize) = n;
+    }
 }
