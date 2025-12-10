@@ -100,7 +100,7 @@ impl Algorithm {
     fn buddy_unused(&mut self, order: usize, ptr: *mut u8) -> bool {
         unsafe {
             let base = addr_of_mut!(PRE_ALLOC) as *const u8;
-            let need = ptr.offset_from(addr_of_mut!(PRE_ALLOC) as *const u8) as usize;
+            let need = ptr.offset_from(base) as usize;
             let mut prev = FREE_LIST[order];
             loop {
                 if prev == need {
@@ -118,7 +118,7 @@ impl Algorithm {
     fn buddy_close(&mut self, order: usize, ptr: *mut u8) {
         unsafe {
             let base = addr_of_mut!(PRE_ALLOC) as *const u8;
-            let need = ptr.offset_from(addr_of_mut!(PRE_ALLOC) as *const u8) as usize;
+            let need = ptr.offset_from(base) as usize;
             let mut prev = FREE_LIST[order];
             if prev == need {
                 FREE_LIST[order] = *(base.add(need) as *const usize);
