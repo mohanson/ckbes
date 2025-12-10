@@ -11,9 +11,10 @@ use core::cmp::min;
 use core::ptr::{self, addr_of_mut};
 use core::usize;
 
-pub static MIN_BLOCK: usize = 64;
-pub static MAX_ORDER: usize = 14;
-pub static MAX_TOTAL: usize = 1024 * 1024;
+pub const MIN_BLOCK: usize = 64;
+pub const MAX_ORDER: usize = 14;
+pub const MAX_TOTAL: usize = 1024 * 1024;
+pub const PTR_ALLOC: *mut u8 = addr_of_mut!(PRE_ALLOC) as *mut u8;
 pub static mut FREE_LIST: [usize; MAX_ORDER + 1] = {
     let mut list = [usize::MAX; MAX_ORDER + 1];
     list[MAX_ORDER] = 0;
@@ -46,9 +47,8 @@ impl Algorithm {
                 return ptr::null_mut();
             }
             if FREE_LIST[order] != usize::MAX {
-                let start_ptr = addr_of_mut!(PRE_ALLOC) as *mut u8;
                 let block_offset = FREE_LIST[order];
-                let block_ptr = start_ptr.add(block_offset);
+                let block_ptr = PTR_ALLOC.add(block_offset);
                 FREE_LIST[order] = uldr(block_ptr);
                 return block_ptr;
             }
@@ -56,10 +56,9 @@ impl Algorithm {
             if block.is_null() {
                 return ptr::null_mut();
             }
-            let start_ptr = addr_of_mut!(PRE_ALLOC) as *mut u8;
             let block_size = MIN_BLOCK << order;
             let buddy_ptr = block.add(block_size);
-            let buddy_offset = buddy_ptr.offset_from(start_ptr) as usize;
+            let buddy_offset = buddy_ptr.offset_from(PTR_ALLOC) as usize;
             ustr(buddy_ptr, usize::MAX);
             FREE_LIST[order] = buddy_offset;
             block
@@ -71,20 +70,19 @@ impl Algorithm {
             if ptr.is_null() {
                 return;
             }
-            let start_ptr = addr_of_mut!(PRE_ALLOC) as *mut u8;
             let block_ptr = ptr;
             let block_size = MIN_BLOCK << order;
-            let block_offset = block_ptr.offset_from(start_ptr) as usize;
+            let block_offset = block_ptr.offset_from(PTR_ALLOC) as usize;
             let block_idx = block_offset / block_size;
             let buddy_idx = block_idx ^ 1;
             let buddy_offset = buddy_idx * block_size;
-            let buddy_ptr = start_ptr.add(buddy_offset);
+            let buddy_ptr = PTR_ALLOC.add(buddy_offset);
             if self.buddy_unused(order, buddy_ptr) {
                 self.buddy_close(order, buddy_ptr);
                 self.close_block(order + 1, min(block_ptr, buddy_ptr));
                 return;
             }
-            *(block_ptr as *mut usize) = FREE_LIST[order];
+            ustr(block_ptr, FREE_LIST[order]);
             FREE_LIST[order] = block_offset;
         }
     }
@@ -99,8 +97,7 @@ impl Algorithm {
 
     fn buddy_unused(&mut self, order: usize, ptr: *mut u8) -> bool {
         unsafe {
-            let base = addr_of_mut!(PRE_ALLOC) as *const u8;
-            let need = ptr.offset_from(base) as usize;
+            let need = ptr.offset_from(PTR_ALLOC) as usize;
             let mut prev = FREE_LIST[order];
             loop {
                 if prev == need {
@@ -109,7 +106,7 @@ impl Algorithm {
                 if prev == usize::MAX {
                     break prev == need;
                 }
-                let next = *(base.add(prev) as *const usize);
+                let next = *(PTR_ALLOC.add(prev) as *const usize);
                 prev = next;
             }
         }
@@ -117,20 +114,19 @@ impl Algorithm {
 
     fn buddy_close(&mut self, order: usize, ptr: *mut u8) {
         unsafe {
-            let base = addr_of_mut!(PRE_ALLOC) as *const u8;
-            let need = ptr.offset_from(base) as usize;
+            let need = ptr.offset_from(PTR_ALLOC) as usize;
             let mut prev = FREE_LIST[order];
             if prev == need {
-                FREE_LIST[order] = *(base.add(need) as *const usize);
+                FREE_LIST[order] = *(PTR_ALLOC.add(need) as *const usize);
                 return;
             }
             loop {
                 if prev == usize::MAX {
                     break;
                 }
-                let next = *(base.add(prev) as *const usize);
+                let next = *(PTR_ALLOC.add(prev) as *const usize);
                 if next == need {
-                    *(base.add(prev) as *mut usize) = *(base.add(next) as *const usize);
+                    *(PTR_ALLOC.add(prev) as *mut usize) = *(PTR_ALLOC.add(next) as *const usize);
                     break;
                 }
                 prev = next;
