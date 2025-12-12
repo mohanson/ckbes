@@ -8,7 +8,7 @@
 use core::alloc::{GlobalAlloc, Layout};
 use core::cell::UnsafeCell;
 use core::cmp::min;
-use core::ptr::{self, addr_of_mut};
+use core::ptr::addr_of_mut;
 
 pub const MIN_BLOCK: usize = 64;
 pub const MAX_ORDER: usize = 14;
@@ -37,98 +37,101 @@ pub static mut PRE_ALLOC: [u8; MAX_TOTAL] = {
     alloc
 };
 
+/// Buddy allocation algorithm implementation.
 pub struct Algorithm;
+/// Information about allocated memory blocks.
+#[derive(Clone, Copy)]
+pub struct Blockinfo {
+    pub offset: usize,
+    pub length: usize,
+}
 
 impl Algorithm {
-    pub fn alloc_block(&mut self, order: usize) -> *mut u8 {
+    pub fn alloc(&mut self, order: usize) -> Blockinfo {
         unsafe {
             if order > MAX_ORDER {
-                return ptr::null_mut();
+                let block_offset = usize::MAX;
+                return Blockinfo { offset: block_offset, length: 0 };
             }
+            let block_size = MIN_BLOCK << order;
             if FREE_LIST[order] != usize::MAX {
                 let block_offset = FREE_LIST[order];
                 let block_ptr = PTR_ALLOC.add(block_offset);
                 FREE_LIST[order] = uldr(block_ptr);
-                return block_ptr;
+                return Blockinfo { offset: block_offset, length: block_size };
             }
-            let block = self.alloc_block(order + 1);
-            if block.is_null() {
-                return ptr::null_mut();
+            let block = self.alloc(order + 1);
+            let block_offset = block.offset;
+            if block_offset == usize::MAX {
+                return Blockinfo { offset: block_offset, length: 0 };
             }
-            let block_size = MIN_BLOCK << order;
-            let buddy_ptr = block.add(block_size);
-            let buddy_offset = buddy_ptr.offset_from(PTR_ALLOC) as usize;
+            let buddy_offset = block_offset + block_size;
+            let buddy_ptr = PTR_ALLOC.add(buddy_offset);
             ustr(buddy_ptr, usize::MAX);
             FREE_LIST[order] = buddy_offset;
-            block
+            Blockinfo { offset: block_offset, length: block_size }
         }
     }
 
-    pub fn close_block(&mut self, order: usize, ptr: *mut u8) {
+    pub fn close(&mut self, block: Blockinfo) {
         unsafe {
-            if ptr.is_null() {
+            if block.offset == usize::MAX {
                 return;
             }
-            let block_ptr = ptr;
-            let block_size = MIN_BLOCK << order;
-            let block_offset = block_ptr.offset_from(PTR_ALLOC) as usize;
-            let block_idx = block_offset / block_size;
+            let order = log2(MIN_BLOCK, block.length);
+            let block_idx = block.offset / block.length;
             let buddy_idx = block_idx ^ 1;
-            let buddy_offset = buddy_idx * block_size;
-            let buddy_ptr = PTR_ALLOC.add(buddy_offset);
-            if self.buddy_unused(order, buddy_ptr) {
-                self.buddy_close(order, buddy_ptr);
-                self.close_block(order + 1, min(block_ptr, buddy_ptr));
+            let buddy_offset = buddy_idx * block.length;
+            let buddy = Blockinfo { offset: buddy_offset, length: block.length };
+            let upper = Blockinfo { offset: min(block.offset, buddy_offset), length: block.length << 1 };
+            if self.state(buddy) == 0 {
+                self.merge(buddy);
+                self.close(upper);
                 return;
             }
+            let block_ptr = PTR_ALLOC.add(block.offset);
             ustr(block_ptr, FREE_LIST[order]);
-            FREE_LIST[order] = block_offset;
+            FREE_LIST[order] = block.offset;
         }
     }
 
-    pub fn alloc(&mut self, layout: Layout) -> *mut u8 {
-        self.alloc_block(log2(MIN_BLOCK, clp2(layout.size()).max(MIN_BLOCK)))
-    }
-
-    pub fn close(&mut self, layout: Layout, ptr: *mut u8) {
-        self.close_block(log2(MIN_BLOCK, clp2(layout.size()).max(MIN_BLOCK)), ptr);
-    }
-
-    fn buddy_unused(&mut self, order: usize, ptr: *mut u8) -> bool {
+    pub fn state(&mut self, buddy: Blockinfo) -> usize {
         unsafe {
-            let buddy_offset = ptr.offset_from(PTR_ALLOC) as usize;
-            let mut block_offset = FREE_LIST[order];
+            let order = log2(MIN_BLOCK, buddy.length);
+            let mut n = FREE_LIST[order];
+            let mut m: usize;
             loop {
-                if block_offset == buddy_offset {
-                    break block_offset != usize::MAX;
+                if n == usize::MAX {
+                    return 1;
                 }
-                if block_offset == usize::MAX {
-                    break block_offset == buddy_offset;
+                m = uldr(PTR_ALLOC.add(n));
+                if n == buddy.offset {
+                    return 0;
                 }
-                block_offset = uldr(PTR_ALLOC.add(block_offset));
+                n = m;
             }
         }
     }
 
-    fn buddy_close(&mut self, order: usize, ptr: *mut u8) {
+    pub fn merge(&mut self, buddy: Blockinfo) {
         unsafe {
-            let buddy_offset = ptr.offset_from(PTR_ALLOC) as usize;
-            let mut block_offset = FREE_LIST[order];
-            let mut block_offtmp: usize;
-            if block_offset == buddy_offset {
-                FREE_LIST[order] = uldr(PTR_ALLOC.add(block_offset));
-                return;
-            }
+            let order = log2(MIN_BLOCK, buddy.length);
+            let mut n = FREE_LIST[order];
+            let mut m: usize;
             loop {
-                if block_offset == usize::MAX {
+                if n == usize::MAX {
                     break;
                 }
-                block_offtmp = uldr(PTR_ALLOC.add(block_offset));
-                if block_offtmp == buddy_offset {
-                    ustr(PTR_ALLOC.add(block_offset), uldr(PTR_ALLOC.add(block_offtmp)));
+                m = uldr(PTR_ALLOC.add(n));
+                if n == buddy.offset {
+                    FREE_LIST[order] = m;
+                    return;
+                }
+                if m == buddy.offset {
+                    ustr(PTR_ALLOC.add(n), uldr(PTR_ALLOC.add(m)));
                     break;
                 }
-                block_offset = block_offtmp;
+                n = m;
             }
         }
     }
@@ -146,11 +149,21 @@ impl Allocator {
 
 unsafe impl GlobalAlloc for Allocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        unsafe { (*self.inner.get()).alloc(layout) }
+        unsafe {
+            let inner = &mut *self.inner.get();
+            let order = log2(MIN_BLOCK, clp2(layout.size()).max(MIN_BLOCK));
+            let block = inner.alloc(order);
+            PTR_ALLOC.add(block.offset)
+        }
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-        unsafe { (*self.inner.get()).close(layout, ptr) }
+        unsafe {
+            let inner = &mut *self.inner.get();
+            let order = log2(MIN_BLOCK, clp2(layout.size()).max(MIN_BLOCK));
+            let block = Blockinfo { offset: ptr.offset_from(PTR_ALLOC) as usize, length: MIN_BLOCK << order };
+            inner.close(block);
+        }
     }
 }
 
