@@ -84,51 +84,24 @@ impl Algorithm {
             let buddy_offset = buddy_idx * block.length;
             let buddy = Blockinfo { offset: buddy_offset, length: block.length };
             let upper = Blockinfo { offset: min(block.offset, buddy_offset), length: block.length << 1 };
-            if self.state(buddy) == 0 {
-                self.merge(buddy);
-                self.close(upper);
-                return;
-            }
-            let block_ptr = PTR_ALLOC.add(block.offset);
-            ustr(block_ptr, FREE_LIST[order]);
-            FREE_LIST[order] = block.offset;
-        }
-    }
-
-    pub fn state(&mut self, buddy: Blockinfo) -> usize {
-        unsafe {
-            let order = log2(MIN_BLOCK, buddy.length);
             let mut n = FREE_LIST[order];
             let mut m: usize;
             loop {
                 if n == usize::MAX {
-                    return 1;
-                }
-                m = uldr(PTR_ALLOC.add(n));
-                if n == buddy.offset {
-                    return 0;
-                }
-                n = m;
-            }
-        }
-    }
-
-    pub fn merge(&mut self, buddy: Blockinfo) {
-        unsafe {
-            let order = log2(MIN_BLOCK, buddy.length);
-            let mut n = FREE_LIST[order];
-            let mut m: usize;
-            loop {
-                if n == usize::MAX {
+                    let block_ptr = PTR_ALLOC.add(block.offset);
+                    ustr(block_ptr, FREE_LIST[order]);
+                    FREE_LIST[order] = block.offset;
                     break;
                 }
                 m = uldr(PTR_ALLOC.add(n));
                 if n == buddy.offset {
                     FREE_LIST[order] = m;
-                    return;
+                    self.close(upper);
+                    break;
                 }
                 if m == buddy.offset {
                     ustr(PTR_ALLOC.add(n), uldr(PTR_ALLOC.add(m)));
+                    self.close(upper);
                     break;
                 }
                 n = m;
