@@ -1,6 +1,6 @@
 [package]
 name = "ckbes"
-version = "1.0.2"
+version = "1.0.3"
 edition = "2024"
 description = "CKB Easy Script is a framework for developing ckb contracts."
 license = "MIT"
