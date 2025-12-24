@@ -3,7 +3,7 @@ use alloc::string::{String, ToString};
 use alloc::vec::Vec;
 
 #[global_allocator]
-pub static LALC: Allocator = Allocator::global();
+pub static LALC: Allocator = Allocator {};
 pub static mut ARGS: Vec<String> = Vec::new();
 
 #[panic_handler]
